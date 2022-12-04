@@ -1,0 +1,28 @@
+name: Build API docs
+on:
+  push:
+  schedule:
+    - cron: '0 0 * * 0'
+jobs:
+  build:
+    container: alpine:edge
+    runs-on: ubuntu-latest
+    env:
+      INSPIRCD_BRANCHES: insp3 master
+      INSPIRCD_TAGS: v3 v4
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |-
+          apk add doxygen git python3
+
+      - name: Build API docs
+        run: |-
+          ./mkapi
+
+      - name: Deploy API docs
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site

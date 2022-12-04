@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+#
+# InspIRCd -- Internet Relay Chat Daemon
+#
+#   Copyright (C) 2022 Sadie Powell <sadie@witchery.services>
+#
+# This file is part of InspIRCd.  InspIRCd is free software: you can
+# redistribute it and/or modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation, version 2.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+CC_BOLD  = "\x1B[1m"    if sys.stdout.isatty() else ''
+CC_RED   = "\x1B[1;31m" if sys.stdout.isatty() else ''
+CC_RESET = "\x1B[0m"    if sys.stdout.isatty() else ''
+
+# INSPIRCD_BRANCHES contains a space-delimited list of git branch names.
+INSPIRCD_BRANCHES = os.getenv('INSPIRCD_BRANCHES', 'master').split()
+
+# INSPIRCD_REPOSITORY contains the location of the InspIRCd git repository.
+INSPIRCD_REPOSITORY = os.getenv('INSPIRCD_REPOSITORY', 'https://github.com/inspircd/inspircd.git')
+
+# INSPIRCD_TAGS contains a space-delimited list of git tag prefixes.
+INSPIRCD_TAGS = os.getenv('INSPIRCD_TAGS', '').split()
+
+def error(message):
+    print(f"{CC_RED}Error:{CC_RESET} {message}!", file=sys.stderr)
+    sys.exit(1)
+
+GIT = os.getenv('GIT', 'git')
+if not shutil.which(GIT):
+    error(f"Git ({GIT}) must be installed to build the API docs")
+
+DOXYGEN = os.getenv('DOXYGEN', 'doxygen')
+if not shutil.which(DOXYGEN):
+    error(f"Doxygen ({DOXYGEN}) must be installed to build the API docs")
+
+SITE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'site')
+for file in os.listdir(SITE_DIR):
+    abs_file = os.path.join(SITE_DIR, file)
+    if os.path.isdir(abs_file) and os.path.exists(os.path.join(abs_file, 'doxygen.css')):
+        print(f"Removing {CC_BOLD}{abs_file}{CC_RESET} from a previous run ...")
+        shutil.rmtree(abs_file)
+
+with tempfile.TemporaryDirectory() as git:
+    print(f"Cloning {CC_BOLD}{INSPIRCD_REPOSITORY}{CC_RESET} to {git} ...")
+    if subprocess.call([GIT, 'clone', INSPIRCD_REPOSITORY, git]):
+        sys.exit(1)
+    os.chdir(git)
+
+    # Build the list of refs to build docs for.
+    references = {}
+    for branch in INSPIRCD_BRANCHES:
+        references[branch] = [branch]
+    for tag in subprocess.check_output([GIT, 'tag', '--list', '--sort', '-v:refname'], encoding='utf-8').split('\n'):
+        for tag_prefix in INSPIRCD_TAGS:
+            if tag.startswith(tag_prefix):
+                versions = re.match(r'^v((((\d+)\.\d+)\.\d+).*)', tag)
+                if not versions:
+                    continue
+                if not tag in references:
+                    references[tag] = []
+                for version in versions.groups():
+                    references[tag].append(version)
+
+    DOXYGEN_DIR = os.path.join(git, 'docs', 'doxygen', 'html')
+    for reference, directories in references.items():
+        print(f"Building API docs for {CC_BOLD}{reference}{CC_RESET} ...")
+        if os.system(f"{GIT} clean -dfx && {GIT} checkout {reference} && {DOXYGEN} docs/Doxyfile 1>/dev/null"):
+            sys.exit(1)
+
+        for directory in directories:
+            site_dir = os.path.join(SITE_DIR, directory)
+            if os.path.exists(site_dir):
+                continue
+            print(f"Copying API docs from {CC_BOLD}{DOXYGEN_DIR}{CC_RESET} to {CC_BOLD}{site_dir}{CC_RESET} ...")
+            shutil.copytree(DOXYGEN_DIR, site_dir)
