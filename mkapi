@@ -80,8 +80,14 @@ with tempfile.TemporaryDirectory() as git:
 
     DOXYGEN_DIR = os.path.join(git, 'docs', 'doxygen', 'html')
     for reference, directories in references.items():
+        print(f"Preparing to build API docs for {CC_BOLD}{reference}{CC_RESET} ...")
+        if os.system(f"{GIT} clean -dfx && {GIT} reset --hard && {GIT} checkout {reference}"):
+            sys.exit(1)
+
         print(f"Building API docs for {CC_BOLD}{reference}{CC_RESET} ...")
-        if os.system(f"{GIT} clean -dfx && {GIT} checkout {reference} && {DOXYGEN} docs/Doxyfile 1>/dev/null"):
+        with open("docs/Doxyfile", "a") as fh:
+            fh.write(f"PROJECT_NUMBER = {reference}")
+        if subprocess.call([DOXYGEN, 'docs/Doxyfile'], stdout=subprocess.DEVNULL):
             sys.exit(1)
 
         for directory in directories:
