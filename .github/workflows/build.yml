@@ -4,6 +4,13 @@ on:
   schedule:
     - cron: '0 0 * * 0'
   workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+  pages: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
 jobs:
   build:
     container: alpine:edge
@@ -11,19 +18,28 @@ jobs:
     env:
       INSPIRCD_BRANCHES: insp3 master
       INSPIRCD_TAGS: v3 v4
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v3
 
       - name: Install dependencies
         run: |-
-          apk add doxygen git python3
+          apk add doxygen git python3 tar
 
       - name: Build API docs
         run: |-
           ./mkapi
 
-      - name: Deploy API docs
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Upload API docs artifact
+        uses: actions/upload-pages-artifact@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
+          path: ./site
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v2
+
+      - name: Deploy API docs to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
