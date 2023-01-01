@@ -1,6 +1,8 @@
 name: Build API docs
 on:
   push:
+    branches:
+      - master
   schedule:
     - cron: '0 0 * * 0'
   workflow_dispatch:
@@ -33,16 +35,13 @@ jobs:
           ./mkapi
 
       - name: Upload API docs artifact
-        if: github.ref == 'refs/heads/master'
         uses: actions/upload-pages-artifact@v1
         with:
           path: ./site
 
       - name: Setup GitHub Pages
-        if: github.ref == 'refs/heads/master'
         uses: actions/configure-pages@v2
 
       - name: Deploy API docs to GitHub Pages
-        if: github.ref == 'refs/heads/master'
         id: deployment
         uses: actions/deploy-pages@v1

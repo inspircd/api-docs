@@ -1,0 +1,23 @@
+name: Check API docs
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  build:
+    container: alpine:edge
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/master'
+    env:
+      INSPIRCD_BRANCHES: insp3 master
+      INSPIRCD_TAGS: v3 v4
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |-
+          apk add doxygen git python3
+
+      - name: Build API docs
+        run: |-
+          ./mkapi
