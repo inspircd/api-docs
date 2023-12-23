@@ -18,12 +18,15 @@
 #
 
 
+import datetime
 import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+
+import jinja2
 
 CC_BOLD  = "\x1B[1m"    if sys.stdout.isatty() else ''
 CC_RED   = "\x1B[1;31m" if sys.stdout.isatty() else ''
@@ -57,6 +60,7 @@ for file in os.listdir(SITE_DIR):
         print(f"Removing {CC_BOLD}{abs_file}{CC_RESET} from a previous run ...")
         shutil.rmtree(abs_file)
 
+docs = {}
 with tempfile.TemporaryDirectory() as git:
     print(f"Cloning {CC_BOLD}{INSPIRCD_REPOSITORY}{CC_RESET} to {git} ...")
     if subprocess.call([GIT, 'clone', INSPIRCD_REPOSITORY, git]):
@@ -96,3 +100,14 @@ with tempfile.TemporaryDirectory() as git:
                 continue
             print(f"Copying API docs from {CC_BOLD}{DOXYGEN_DIR}{CC_RESET} to {CC_BOLD}{site_dir}{CC_RESET} ...")
             shutil.copytree(DOXYGEN_DIR, site_dir)
+            if not reference in docs:
+                docs[reference] = []
+            docs[reference].append(directory)
+
+env = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
+template = env.get_template("index.html.j2")
+with open(os.path.join(SITE_DIR, "index.html"), "w") as fh:
+    fh.write(template.render(
+        docs=docs,
+        time=datetime.datetime.now()
+    ))

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>InspIRCd API Documentation</title>
+		<meta charset="utf-8">
+		<style type="text/css">
+			body {
+				color: #444444;
+				font-size: 18px;
+				line-height: 1.5;
+				margin: 50px 15%;
+			}
+			h1 {
+				line-height: 1.2;
+			}
+			li {
+				margin-bottom: 10px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>InspIRCd API Documentation</h1>
+		{%- for version, directories in docs.items() %}
+			<h2>{{ version }}</h2>
+			<ul>
+			{%- for directory in directories %}
+				<li><a href="{{ directory }}">{{ directory }}</a></li>
+			{%- endfor %}
+			</ul>
+		{%- endfor %}
+		<footer>Documentation generated at {{ time }} using the <a href="https://github.com/inspircd/inspircd-api">InspIRCd API Documentation Builder</a>.</footer>
+	</body>
+</html>
