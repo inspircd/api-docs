@@ -18,7 +18,7 @@ jobs:
     container: alpine:edge
     runs-on: ubuntu-latest
     env:
-      INSPIRCD_BRANCHES: insp3 master
+      INSPIRCD_BRANCHES: insp3 insp4 master
       INSPIRCD_TAGS: v3 v4
     environment:
       name: github-pages
