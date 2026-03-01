@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       INSPIRCD_BRANCHES: insp4 master
-      INSPIRCD_TAGS: v3 v4
+      INSPIRCD_TAGS: v3 v4 v5
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
