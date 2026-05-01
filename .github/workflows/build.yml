@@ -36,7 +36,7 @@ jobs:
           ./mkapi
 
       - name: Upload API docs artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./site
 
