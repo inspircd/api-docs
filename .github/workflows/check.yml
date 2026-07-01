@@ -12,7 +12,7 @@ jobs:
       MKAPI_BRANCHES: insp4 master
       MKAPI_TAGS: v4 v5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |-
