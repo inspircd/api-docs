@@ -28,46 +28,48 @@ import tempfile
 
 import jinja2
 
-CC_BOLD  = "\x1B[1m"    if sys.stdout.isatty() else ''
-CC_RED   = "\x1B[1;31m" if sys.stdout.isatty() else ''
-CC_RESET = "\x1B[0m"    if sys.stdout.isatty() else ''
+CC_BOLD  = "\x1B[1m"    if sys.stdout.isatty() else ""
+CC_RED   = "\x1B[1;31m" if sys.stdout.isatty() else ""
+CC_RESET = "\x1B[0m"    if sys.stdout.isatty() else ""
 
 # MKAPI_BRANCHES contains a space-delimited list of git branch names.
-MKAPI_BRANCHES = os.getenv('MKAPI_BRANCHES', 'master').split()
+MKAPI_BRANCHES = os.getenv("MKAPI_BRANCHES", "master").split()
 
 # MKAPI_REPOSITORY contains the location of the git repository.
-MKAPI_REPOSITORY = os.getenv('MKAPI_REPOSITORY', 'https://github.com/inspircd/inspircd.git')
+MKAPI_REPOSITORY = os.getenv("MKAPI_REPOSITORY", "https://github.com/inspircd/inspircd.git")
 
 # MKAPI_TAGS contains a space-delimited list of git tag prefixes.
-MKAPI_TAGS = os.getenv('MKAPI_TAGS', '').split()
+MKAPI_TAGS = os.getenv("MKAPI_TAGS", "").split()
+
 
 def error(message):
     print(f"{CC_RED}Error:{CC_RESET} {message}!", file=sys.stderr)
     sys.exit(1)
 
-GIT = os.getenv('GIT', 'git')
+
+GIT = os.getenv("GIT", "git")
 if not shutil.which(GIT):
     error(f"Git ({GIT}) must be installed to build the API docs")
 
-DOXYGEN = os.getenv('DOXYGEN', 'doxygen')
+DOXYGEN = os.getenv("DOXYGEN", "doxygen")
 if not shutil.which(DOXYGEN):
     error(f"Doxygen ({DOXYGEN}) must be installed to build the API docs")
 
-SITE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'site')
-for type in "branch tag".split():
+SITE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "site")
+for type in ["branch", "tag"]:
     abs_dir = os.path.join(SITE_DIR, type)
     if not os.path.isdir(abs_dir):
         continue
     for file in os.listdir(abs_dir):
         abs_file = os.path.join(abs_dir, file)
-        if os.path.isdir(abs_file) and os.path.exists(os.path.join(abs_file, 'doxygen.css')):
+        if os.path.isdir(abs_file) and os.path.exists(os.path.join(abs_file, "doxygen.css")):
             print(f"Removing {CC_BOLD}{abs_file}{CC_RESET} from a previous run ...")
             shutil.rmtree(abs_file)
 
 docs = {}
 with tempfile.TemporaryDirectory() as git:
     print(f"Cloning {CC_BOLD}{MKAPI_REPOSITORY}{CC_RESET} to {git} ...")
-    if subprocess.call([GIT, 'clone', MKAPI_REPOSITORY, git]):
+    if subprocess.call([GIT, "clone", MKAPI_REPOSITORY, git]):
         sys.exit(1)
     os.chdir(git)
 
@@ -75,11 +77,11 @@ with tempfile.TemporaryDirectory() as git:
     references = {}
     for branch in sorted(MKAPI_BRANCHES, reverse=True):
         references[branch] = {branch: f"branch/{branch}"}
-    tags = subprocess.check_output([GIT, 'tag', '--list', '--sort', '-creatordate'], encoding='utf-8').splitlines()
+    tags = subprocess.check_output([GIT, "tag", "--list", "--sort", "-creatordate"], encoding="utf-8").splitlines()
     for tag_prefix in sorted(MKAPI_TAGS, reverse=True):
         for tag in tags:
             if tag.startswith(tag_prefix):
-                versions = re.match(r'^v((((\d+)\.\d+)\.\d+).*)', tag)
+                versions = re.match(r"^v((((\d+)\.\d+)\.\d+).*)", tag)
                 if not versions:
                     continue
                 if tag not in references:
@@ -87,7 +89,7 @@ with tempfile.TemporaryDirectory() as git:
                 for version in versions.groups():
                     references[tag][version] = f"tag/{version}"
 
-    DOXYGEN_DIR = os.path.join(git, 'docs', 'doxygen', 'html')
+    DOXYGEN_DIR = os.path.join(git, "docs", "doxygen", "html")
     for reference, directories in references.items():
         print(f"Preparing to build API docs for {CC_BOLD}{reference}{CC_RESET} ...")
         if os.system(f"{GIT} clean -dfx && {GIT} reset --hard && {GIT} checkout {reference}"):
@@ -100,7 +102,7 @@ with tempfile.TemporaryDirectory() as git:
         print(f"Building API docs for {CC_BOLD}{reference}{CC_RESET} ...")
         with open("docs/Doxyfile", "a") as fh:
             fh.write(f"PROJECT_NUMBER = {reference}")
-        if subprocess.call([DOXYGEN, 'docs/Doxyfile'], stdout=subprocess.DEVNULL):
+        if subprocess.call([DOXYGEN, "docs/Doxyfile"], stdout=subprocess.DEVNULL):
             sys.exit(1)
 
         for version, directory in directories.items():
